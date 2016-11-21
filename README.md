@@ -1,7 +1,7 @@
 # Zimbra Rocket
 In this Repository you will find a simple Zimlet to connect Zimbra Collaboration with Rocket Chat, and make an amazing integration with both inside the Zimbra Web Client, it will look like:
 
-![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/img/raw/master/zimbra-rocket-ui.png)
+![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/raw/master/img/zimbra-rocket-ui.png)
 
 # Instructions
 ## How to install Rocket Chat
@@ -18,18 +18,18 @@ Rocket Chat it's also designed to be deployed on Docker or Ubuntu Snap, which is
 Configure Rocket Chat with the Zimbra LDAP is really easy, and you must follow the next steps:
 
 Go to Administration and then LDAP, and enable the LDAP option, mark the option as shown, change the LDAP hostname with your Zimbra one (the Rocket and the Zimbra must have Network visibility)
-![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/img/raw/master/rocket-001.png)
+![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/raw/master/img/rocket-001.png)
 
 On the *Domain Base* add the next, change it with your domain: *ou=people,dc=zimbra,dc=io*
 On the *Domain Search User* select the next: *uid=zimbra,cn=admins,cn=zimbra*
 On the *Domain Search Password* add your LDAP Password, you can retrieve on the Zimbra server with *zmlocalconfig -s zimbra_ldap_password*
-![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/img/raw/master/rocket-002.png)
+![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/raw/master/img/rocket-002.png)
 
 On the next fields, please fill them as shown:
-![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/img/raw/master/rocket-003.png)
+![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/raw/master/img/rocket-003.png)
 
 On the latest fields, fill them as shown and finally click on test, and Sync users, and Save
-![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/img/raw/master/rocket-004.png)
+![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/raw/master/img/rocket-004.png)
 
 # How to Download and Deploy the Zimbra Rocket Zimlet
 Please download the .zip file, or clone this repo, you must edit the file called *com_zimbra_rocket.js* with your details like:
@@ -53,25 +53,25 @@ adding: rocket.png (stored 0%)
 ```
 
 Then, you are ready to add the .zip to your Admin Console as usual:
-![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/img/raw/master/rocket-005.png)
+![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/raw/master/img/rocket-005.png)
 
 If everything went okay, you will see the next message
-![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/img/raw/master/rocket-006.png)
+![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/raw/master/img/rocket-006.png)
 
 Then you need to enable the Zimlet in the Class of Service you want:
-![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/img/raw/master/rocket-007.png)
+![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/raw/master/img/rocket-007.png)
 
 And finally, the users will see it on their Tabs, and they need to introduce the credentials again, this will be fixed soon:
-![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/img/raw/master/rocket-008.png)
+![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/raw/master/img/rocket-008.png)
 
 # Special Bonus, Zimbra Talk Integration and Zimbra Rocket
 Zimbra Rocket doesn't end into an amazing look-a-like Slack experience, and you can even integrate your Zimbra Talk to make video calls between users, one-to-one and one-to-many, follow the next steps to enable it:
 
 Go to Administration > Videoconference and add your Zimbra Talk FQDN, and the Zimbra Talk Chrome ID for the Share Screen Feature:
-![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/img/raw/master/rocket-009.png)
+![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/raw/master/img/rocket-009.png)
 
 Then the users will be able to call each other, or to groups by using the camera icon:
-![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/img/raw/master/rocket-010.png)
+![Zimbra Rocket](https://github.com/jorgedlcruz/zimbra-zimlets/raw/master/img/rocket-010.png)
 
 ## ToDo
 - [ ] Add a way to store the LDAP user and Password within the Zimlet
