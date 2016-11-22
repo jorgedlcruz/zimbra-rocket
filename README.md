@@ -75,7 +75,7 @@ Then the users will be able to call each other, or to groups by using the camera
 
 ## ToDo
 - [ ] Add a way to store the LDAP user and Password within the Zimlet
-- [ ] Make the horizontal-right features bar from Rocket on all Zimbra Web Client, so keep it there static
+- [ ] Make the vertical-right features bar from Rocket on all Zimbra Web Client, so keep it there static
 
 ========================================================================
 ### License
