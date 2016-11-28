@@ -33,7 +33,7 @@ ZimbraRocketZimlet.prototype.singleClicked = function() {
          var zimletInstance = appCtxt._zimletMgr.getZimletByName('com_zimbra_rocket').handlerObject;
          var app = appCtxt.getApp(this.ZimbraRocketTab);
          app.activate(true, this.ZimbraRocketTab);
-         app.setContent('<div style="position: fixed; left:0; width:100%; height:89%; border:0px;"><iframe id="ZimbraRocketFrame" style="z-index:2; left:0; width:100%; height:100%; border:0px;" src=\"https://YOUR-ROCHET-CHAT\"></div>');
+         app.setContent('<div style="position: fixed; left:0; right:0; top:107px; bottom:0; border:0px;"><iframe id="ZimbraRocketFrame" style="z-index:2; left:0; width:100%; height:100%; border:0px;" src=\"https://YOUR-ROCHET-CHAT\"></div>');
          var overview = app.getOverview(); // returns ZmOverview
          overview.setContent("&nbsp;");
          var child = document.getElementById(overview._htmlElId);
