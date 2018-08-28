@@ -7,7 +7,13 @@ com_zimbra_rocket_HandlerObject.prototype.constructor = com_zimbra_rocket_Handle
 var ZimbraRocketZimlet = com_zimbra_rocket_HandlerObject;
 
 ZimbraRocketZimlet.prototype.init = function () {
-   ZimbraRocketZimlet.version=this._zimletContext.version;
+   var zimletInstance = appCtxt._zimletMgr.getZimletByName('com_zimbra_rocket').handlerObject;
+
+   try {
+      zimletInstance.ZimbraRocketTab = zimletInstance.createApp("Rocket", "", "Rocket");
+      var app = appCtxt.getApp(zimletInstance.ZimbraRocketTab);
+      app.setContent('<div style="position: fixed; left:0; width:100%; height:89%; border:0px;"><iframe id="ZimbraRocketFrame" style="z-index:2; left:0; width:100%; height:100%; border:0px;" src=\"'+zimletInstance._zimletContext.getConfig("rocketurl")+'\"></div>');   
+   } catch (err) { console.log (err)} 
 };
 
 /* status method show a Zimbra status message
@@ -26,29 +32,7 @@ ZimbraRocketZimlet.prototype.doubleClicked = function() {
 /* Called when the panel is single-clicked.
  */
 ZimbraRocketZimlet.prototype.singleClicked = function() {
-   try {
-      if(!this.ZimbraRocketTab)
-      {
-         this.ZimbraRocketTab = this.createApp("Rocket", "", "Rocket");
-         var zimletInstance = appCtxt._zimletMgr.getZimletByName('com_zimbra_rocket').handlerObject;
-         var app = appCtxt.getApp(this.ZimbraRocketTab);
-         app.activate(true, this.ZimbraRocketTab);
-         app.setContent('<div style="position: fixed; left:0; width:100%; height:89%; border:0px;"><iframe id="ZimbraRocketFrame" style="z-index:2; left:0; width:100%; height:100%; border:0px;" src=\"https://YOUR-ROCHET-CHAT\"></div>');
-         var overview = app.getOverview(); // returns ZmOverview
-         overview.setContent("&nbsp;");
-         var child = document.getElementById(overview._htmlElId);
-         child.parentNode.removeChild(child);
-      
-         var toolbar = app.getToolbar(); // returns ZmToolBar
-         toolbar.dispose();
-         app.launch();    
-      }
-      else
-      {
-         var app = appCtxt.getApp(this.ZimbraRocketTab);
-         app.launch();
-      }
-   } catch (err) { console.log (err)} 
+
 }; 
 
 /**
@@ -59,6 +43,7 @@ ZimbraRocketZimlet.prototype.singleClicked = function() {
  */
 ZimbraRocketZimlet.prototype.appActive =
 function(appName, active) {
+   var zimletInstance = appCtxt._zimletMgr.getZimletByName('com_zimbra_rocket').handlerObject;
 	if (active)
    {
       //In the Zimbra tab hide the left menu bar that is displayed by default in Zimbra, also hide the mini calendar
@@ -69,6 +54,17 @@ function(appName, active) {
          var cal = document.getElementsByClassName("DwtCalendar");
          cal[0].style.display = "none";
       } catch (err) { setTimeout(function(){var cal = document.getElementsByClassName("DwtCalendar"); cal[0].style.display = "none"; }, 10000); }
+      
+      var app = appCtxt.getApp(zimletInstance.ZimbraRocketTab);
+      var overview = app.getOverview(); // returns ZmOverview
+      overview.setContent("&nbsp;");
+      try {
+         var child = document.getElementById(overview._htmlElId);
+         child.parentNode.removeChild(child);
+      } catch(err)
+      {
+         //already gone
+      }
    }
    else
    {
@@ -79,3 +75,4 @@ function(appName, active) {
       } catch (err) { }
    }
 };
+

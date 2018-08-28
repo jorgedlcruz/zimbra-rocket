@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zimletConfig name="com_zimbra_rocket" version="1.0">
+    <global>
+        <property name="rocketurl">https://beta.zetalliance.org/</property>
+    </global>
+</zimletConfig>
+
