@@ -2,21 +2,53 @@
 
 Copyright (C) 2018  Barry de Graaff
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or
-(at your option) any later version.
+The MIT License
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see http://www.gnu.org/licenses/.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-API implementation can be reached at:
-https://zimbraserver/service/extension/rocket?test=true
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+API implementation for Zimbra -> Rocket Chat, supported actions:
+
+createUser
+https://zimbradev/service/extension/rocket?action=createUser
+Creates users in Rocket chat based on their Zimbra account name.
+The Zimbra Account name is mapped to the username in Rocket Chat.
+(replacing @ with . so admin@example.com in Zimbra becomes
+admin.example.com in Rocket)
+
+Furthermore the users Zimbra givenName and sn (surname) are
+concatenated to the Name in Rocket. Email is email in both
+systems.
+
+signOn
+https://zimbradev/service/extension/rocket?action=signOn
+This URL needs to be configured in Rocket Chat under
+Administration->Accounts->Iframe->API URL
+If the user is logged into Zimbra this
+url will return an auth token to Rocket to let the user login.
+
+redirect
+https://zimbradev/service/extension/rocket?action=signOn
+This URL needs to be configured in Rocket Chat under
+Administration->Accounts->Iframe->Iframe URL
+
+This implementation uses HTTP GET
+Administration->Accounts->Iframe->Api Method = GET
 
 */
 
@@ -24,7 +56,6 @@ package tk.barrydegraaff.rocket;
 
 
 import com.zimbra.cs.extension.ExtensionHttpHandler;
-import com.zimbra.common.service.ServiceException;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
@@ -33,21 +64,15 @@ import javax.servlet.http.HttpServletResponse;
 
 import java.io.*;
 
-import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.common.util.SystemUtil;
-import com.zimbra.cs.account.AuthToken;
-import com.zimbra.cs.account.AuthTokenException;
-
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-
+import com.zimbra.cs.account.AuthToken;
 import com.zimbra.cs.account.Provisioning;
 import com.zimbra.cs.account.Account;
 import com.zimbra.cs.account.Cos;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Rocket extends ExtensionHttpHandler {
@@ -67,6 +92,7 @@ public class Rocket extends ExtensionHttpHandler {
     private String adminUserName;
     private String adminPassword;
     private String rocketURL;
+    private String loginurl;
 
     /**
      * Processes HTTP POST requests.
@@ -92,6 +118,7 @@ public class Rocket extends ExtensionHttpHandler {
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
         String authTokenStr = null;
+        Account zimbraAccount = null;
         //Just read a cos value to see if its a valid user
         try {
             Cookie[] cookies = req.getCookies();
@@ -104,28 +131,20 @@ public class Rocket extends ExtensionHttpHandler {
                 }
             }
 
-            Account account = null;
-
             if (authTokenStr != null) {
                 AuthToken authToken = AuthToken.getAuthToken(authTokenStr);
                 Provisioning prov = Provisioning.getInstance();
-                Account acct = Provisioning.getInstance().getAccountById(authToken.getAccountId());
-                Cos cos = prov.getCOS(acct);
+                zimbraAccount = Provisioning.getInstance().getAccountById(authToken.getAccountId());
+                Cos cos = prov.getCOS(zimbraAccount);
                 Set<String> allowedDomains = cos.getMultiAttrSet(Provisioning.A_zimbraProxyAllowedDomains);
             } else {
-                resp.setStatus(HttpServletResponse.SC_OK);
-                resp.getWriter().write("Please authenticate first");
-                resp.getWriter().flush();
-                resp.getWriter().close();
+                responseWriter("unauthorized", resp, null);
                 return;
             }
 
         } catch (Exception ex) {
             //crafted cookie? get out you.
-            resp.setStatus(HttpServletResponse.SC_OK);
-            resp.getWriter().write("Please authenticate first");
-            resp.getWriter().flush();
-            resp.getWriter().close();
+            responseWriter("unauthorized", resp, null);
             return;
         }
 
@@ -138,88 +157,113 @@ public class Rocket extends ExtensionHttpHandler {
                 paramsMap.put(subParam[0], subParam[1]);
             }
         } else {
-            //do nothing
+            responseWriter("ok", resp, null);
             return;
         }
 
         //Initializes adminAuthToken, adminUserId, adminUserName, adminPassword, rocketURL on this instance
-        this.initializeRocketAPI();
-        String test;
-        test = this.setUserAuthToken("o9DnAsxa4eHwwLQ7M");
+        if (this.initializeRocketAPI()) {
+            switch (paramsMap.get("action")) {
+                case "createUser":
+                    String password = newPassword();
+                    if (this.createUser(zimbraAccount.getName(), zimbraAccount.getGivenName() + " " + zimbraAccount.getSn(), password, zimbraAccount.getName().replace("@", "."))) {
+                        responseWriter("ok", resp, password);
+                    } else {
+                        responseWriter("error", resp, null);
+                    }
+                    break;
+                case "signOn":
+                    String token;
+                    token = this.setUserAuthToken(zimbraAccount.getName().replace("@", "."));
+                    if (!"".equals(token)) {
+                        resp.setHeader("Access-Control-Allow-Origin", this.rocketURL);
+                        resp.setHeader("Access-Control-Allow-Credentials", "true");
+                        resp.setHeader("Content-Type", "application/json");
+                        responseWriter("ok", resp, "{\"loginToken\":\""+token+"\"}");
+                    } else {
+                        responseWriter("error", resp, null);
+                    }
+                    break;
+                case "redirect":
+                    resp.setHeader("Access-Control-Allow-Origin", this.rocketURL);
+                    resp.setHeader("Access-Control-Allow-Credentials", "true");
+                    resp.setHeader("Content-Type", "text/html");
+                    responseWriter("ok", resp, "<html><head></head><body>Please <a target=\"_blank\" href=\"" + this.loginurl + "\">Log in</a>.</body>");
+                    break;
 
-        resp.addHeader("Content-Type", "application/pdf");
-        resp.addHeader("Content-Disposition", "attachment; filename=\"" + this.adminAuthToken + ".\""+this.adminUserId+ ".\""+test);
-        resp.addHeader("Accept-Ranges", "none");
-    }
-
-
-
-    private String getAdminUsername() {
-        Properties prop = new Properties();
-        try {
-            FileInputStream input = new FileInputStream("/opt/zimbra/lib/ext/rocket/config.properties");
-            prop.load(input);
-
-            return prop.getProperty("adminuser");
-        } catch (Exception ex) {
-            return ex.toString();
+            }
+        } else {
+            responseWriter("error", resp, null);
         }
     }
 
-    private String getAdminPassword() {
-        Properties prop = new Properties();
+    private void responseWriter(String action, HttpServletResponse resp, String message) {
         try {
-            FileInputStream input = new FileInputStream("/opt/zimbra/lib/ext/rocket/config.properties");
-            prop.load(input);
-
-            return prop.getProperty("adminpassword");
-        } catch (Exception ex) {
-            return ex.toString();
+            switch (action) {
+                case "ok":
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    if (message == null) {
+                        resp.getWriter().write("OK");
+                    } else {
+                        resp.getWriter().write(message);
+                    }
+                    break;
+                case "unauthorized":
+                    resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    resp.getWriter().write("Not authorized.");
+                    break;
+                case "error":
+                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    resp.getWriter().write("An internal server error occurred.");
+                    break;
+            }
+            resp.getWriter().flush();
+            resp.getWriter().close();
+        } catch (Exception e) {
         }
     }
 
-    private String getRocketURL() {
-        Properties prop = new Properties();
-        try {
-            FileInputStream input = new FileInputStream("/opt/zimbra/lib/ext/rocket/config.properties");
-            prop.load(input);
-
-            return prop.getProperty("rocketurl");
-        } catch (Exception ex) {
-            return ex.toString();
-        }
-    }
-
-    /** Implements: https://beta.zetalliance.org:443/api/v1/login
+    /**
+     * Implements: https://beta.zetalliance.org:443/api/v1/login
      * Since we do not store the token, we may run into:
      * Delete obsolete tokens every 1 hour #7812
      * https://github.com/RocketChat/Rocket.Chat/pull/7812
      * One work-around would be calling the logout api.
      */
-    public void initializeRocketAPI() {
+    public Boolean initializeRocketAPI() {
         HttpURLConnection connection = null;
         String inputLine;
         StringBuffer response = new StringBuffer();
-        this.adminUserName = this.getAdminUsername();
-        this.adminPassword = this.getAdminPassword();
-        this.rocketURL = this.getRocketURL();
-        try {
 
-            String urlParameters  = "username="+this.adminUserName+"&password="+this.adminPassword;
-            byte[] postData       = urlParameters.getBytes( StandardCharsets.UTF_8 );
-            int    postDataLength = postData.length;
-            URL    url            = new URL( this.rocketURL + "/api/v1/login" );
-            connection= (HttpURLConnection) url.openConnection();
-            connection.setDoOutput( true );
+        Properties prop = new Properties();
+        try {
+            FileInputStream input = new FileInputStream("/opt/zimbra/lib/ext/rocket/config.properties");
+            prop.load(input);
+            this.adminUserName = prop.getProperty("adminuser");
+            this.adminPassword = prop.getProperty("adminpassword");
+            this.rocketURL = prop.getProperty("rocketurl");
+            this.loginurl = prop.getProperty("loginurl");
+            input.close();
+        } catch (Exception ex) {
+            return false;
+        }
+
+        try {
+            String urlParameters = "username=" + this.adminUserName + "&password=" + this.adminPassword;
+            byte[] postData = urlParameters.getBytes(StandardCharsets.UTF_8);
+            int postDataLength = postData.length;
+            URL url = new URL(this.rocketURL + "/api/v1/login");
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setDoOutput(true);
             connection.setUseCaches(false);
-            connection.setInstanceFollowRedirects( true );
-            connection.setRequestMethod( "POST" );
-            connection.setRequestProperty( "Content-Type", "application/x-www-form-urlencoded");
-            connection.setRequestProperty( "charset", "utf-8");
-            connection.setRequestProperty( "Content-Length", Integer.toString( postDataLength ));
-            connection.setUseCaches( false );
-            try( DataOutputStream wr = new DataOutputStream( connection.getOutputStream())) {
-                wr.write( postData );
+            connection.setInstanceFollowRedirects(true);
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Content-Length", Integer.toString(postDataLength));
+            connection.setUseCaches(false);
+            try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+                wr.write(postData);
             }
 
             if (connection.getResponseCode() == 200) {
@@ -237,55 +281,55 @@ public class Rocket extends ExtensionHttpHandler {
                 String userId = obj.getJSONObject("data").getString("userId");
                 this.adminAuthToken = authToken;
                 this.adminUserId = userId;
-                return;
+                return true;
 
             } else {
-                return;
+                return false;
             }
         } catch (Exception e) {
-            return;
+            return false;
         }
     }
 
-    /** Implements: https://rocket.chat/docs/developer-guides/rest-api/users/createtoken/
+    /**
+     * Implements: https://rocket.chat/docs/developer-guides/rest-api/users/createtoken/
      * Since we do not store the token, we may run into:
      * Delete obsolete tokens every 1 hour #7812
      * https://github.com/RocketChat/Rocket.Chat/pull/7812
      * One work-around would be calling the logout api.
      * For debugging purpose you can get the list of users by copy pasting the following in the browser console,
      * you need to be logged into rocket for it to work
-     var xhr = new XMLHttpRequest();
-     xhr.open('GET', 'https://rocketserver:443/api/v1/directory?query={"type": "users"}');
-     xhr.setRequestHeader ("X-Auth-Token", "admin auth token");
-     xhr.setRequestHeader ("X-User-Id", "admin user id");
-     xhr.setRequestHeader ("Content-type", "application/json");
-     xhr.send();
-
+     * var xhr = new XMLHttpRequest();
+     * xhr.open('GET', 'https://rocketserver:443/api/v1/directory?query={"type": "users"}');
+     * xhr.setRequestHeader ("X-Auth-Token", "admin auth token");
+     * xhr.setRequestHeader ("X-User-Id", "admin user id");
+     * xhr.setRequestHeader ("Content-type", "application/json");
+     * xhr.send();
      */
-    public String setUserAuthToken(String UserId) {
+    public String setUserAuthToken(String username) {
         HttpURLConnection connection = null;
         String inputLine;
         StringBuffer response = new StringBuffer();
         try {
 
-            String urlParameters  = "{ \"userId\": \""+UserId+"\" }";
-            byte[] postData       = urlParameters.getBytes( StandardCharsets.UTF_8 );
-            int    postDataLength = postData.length;
-            URL    url            = new URL( this.rocketURL + "/api/v1/users.createToken" );
-            connection= (HttpURLConnection) url.openConnection();
-            connection.setDoOutput( true );
+            String urlParameters = "{ \"username\": \"" + username + "\" }";
+            byte[] postData = urlParameters.getBytes(StandardCharsets.UTF_8);
+            int postDataLength = postData.length;
+            URL url = new URL(this.rocketURL + "/api/v1/users.createToken");
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setDoOutput(true);
             connection.setUseCaches(false);
-            connection.setInstanceFollowRedirects( true );
-            connection.setRequestMethod( "POST" );
-            connection.setRequestProperty( "Content-Type", "application/json");
-            connection.setRequestProperty( "charset", "utf-8");
-            connection.setRequestProperty( "Content-Length", Integer.toString( postDataLength ));
-            connection.setRequestProperty( "X-Auth-Token", this.adminAuthToken);
-            connection.setRequestProperty( "X-User-Id", this.adminUserId);
+            connection.setInstanceFollowRedirects(true);
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Content-Length", Integer.toString(postDataLength));
+            connection.setRequestProperty("X-Auth-Token", this.adminAuthToken);
+            connection.setRequestProperty("X-User-Id", this.adminUserId);
 
-            connection.setUseCaches( false );
-            try( DataOutputStream wr = new DataOutputStream( connection.getOutputStream())) {
-                wr.write( postData );
+            connection.setUseCaches(false);
+            try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+                wr.write(postData);
             }
 
             if (connection.getResponseCode() == 200) {
@@ -311,5 +355,78 @@ public class Rocket extends ExtensionHttpHandler {
     }
 
 
+    /**
+     * Implements: https://rocket.chat/docs/developer-guides/rest-api/users/create/
+     */
+    public Boolean createUser(String email, String name, String password, String username) {
+        HttpURLConnection connection = null;
+        String inputLine;
+        StringBuffer response = new StringBuffer();
+        try {
+
+            String urlParameters = "{\"name\": \"" + name + "\", \"email\": \"" + email + "\", \"password\": \"" + password + "\", \"username\": \"" + username + "\"}";
+            byte[] postData = urlParameters.getBytes(StandardCharsets.UTF_8);
+            int postDataLength = postData.length;
+            URL url = new URL(this.rocketURL + "/api/v1/users.create");
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setDoOutput(true);
+            connection.setUseCaches(false);
+            connection.setInstanceFollowRedirects(true);
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("charset", "utf-8");
+            connection.setRequestProperty("Content-Length", Integer.toString(postDataLength));
+            connection.setRequestProperty("X-Auth-Token", this.adminAuthToken);
+            connection.setRequestProperty("X-User-Id", this.adminUserId);
+
+            connection.setUseCaches(false);
+            try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+                wr.write(postData);
+            }
+
+            if (connection.getResponseCode() == 200) {
+                // get response stream
+                BufferedReader in = new BufferedReader(
+                        new InputStreamReader(connection.getInputStream()));
+                // feed response into the StringBuilder
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+                // Start parsing
+                JSONObject obj = new JSONObject(response.toString());
+                String success = obj.getString("success");
+                if ("true".equals(success)) {
+                    return true;
+                } else {
+                    return false;
+                }
+
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /*May need better randomness
+     * */
+    public String newPassword() {
+        String password = "";
+        String characters = "aA1bB2cC3dD4eE5fF6gG8hH9iI0jJkKlLmMnNoOpP&qQrRsStT_uUvV-wWxX+yYzZ";
+        for (int i = 0; i < 10; i++) {
+            password = password + " ";
+        }
+        Random random = new Random();
+        for (int i = 0; i < password.length(); i++) {
+            if (i == 0) {
+                password = String.valueOf(characters.charAt(random.nextInt(65))) + password.substring(1, password.length());
+            } else {
+                password = password.substring(0, i) + String.valueOf(characters.charAt(random.nextInt(65))) + password.substring(i + 1, password.length());
+            }
+        }
+        return password.toString();
+    }
 
 }
