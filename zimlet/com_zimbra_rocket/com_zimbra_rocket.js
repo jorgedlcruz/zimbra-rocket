@@ -7,12 +7,47 @@ com_zimbra_rocket_HandlerObject.prototype.constructor = com_zimbra_rocket_Handle
 var ZimbraRocketZimlet = com_zimbra_rocket_HandlerObject;
 
 ZimbraRocketZimlet.prototype.init = function () {
-   var zimletInstance = appCtxt._zimletMgr.getZimletByName('com_zimbra_rocket').handlerObject;
-
    try {
-      zimletInstance.ZimbraRocketTab = zimletInstance.createApp("Rocket", "", "Rocket");
-      var app = appCtxt.getApp(zimletInstance.ZimbraRocketTab);
-      app.setContent('<div style="position: fixed; left:0; width:100%; height:89%; border:0px;"><iframe id="ZimbraRocketFrame" style="z-index:2; left:0; width:100%; height:100%; border:0px;" src=\"'+zimletInstance._zimletContext.getConfig("rocketurl")+'\"></div>');   
+      var zimletInstance = appCtxt._zimletMgr.getZimletByName('com_zimbra_rocket').handlerObject;
+      zimletInstance.rocketurl = zimletInstance._zimletContext.getConfig("rocketurl");
+      zimletInstance.createRocketAccount = zimletInstance._zimletContext.getConfig("createRocketAccount");
+      zimletInstance.accountCreateInteger = zimletInstance._zimletContext.getConfig("accountCreateInteger");
+      zimletInstance.userAccountCreateInteger = zimletInstance.getUserProperty("accountCreateInteger")
+      
+      if(!zimletInstance.userAccountCreateInteger)
+      {
+         zimletInstance.userAccountCreateInteger = 0;
+      }
+   
+      if(zimletInstance.createRocketAccount == "true")
+      {
+         if(zimletInstance.accountCreateInteger > zimletInstance.userAccountCreateInteger)
+         {
+            zimletInstance.setUserProperty("accountCreateInteger", zimletInstance.accountCreateInteger, true);
+            ZimbraRocketZimlet.prototype.createAccount();
+         }
+         else
+         {
+            ZimbraRocketZimlet.prototype.setIframe();
+         }
+      }
+      else
+      {
+         ZimbraRocketZimlet.prototype.setIframe();
+      }
+   } catch(err)   
+   {
+      console.log(err);
+   }
+};
+
+ZimbraRocketZimlet.prototype.setIframe = function()
+{
+   try {
+   var zimletInstance = appCtxt._zimletMgr.getZimletByName('com_zimbra_rocket').handlerObject;	   
+   zimletInstance.ZimbraRocketTab = zimletInstance.createApp("Rocket", "", "Rocket");
+   var app = appCtxt.getApp(zimletInstance.ZimbraRocketTab);
+   app.setContent('<div style="position: fixed; left:0; width:100%; height:89%; border:0px;"><iframe id="ZimbraRocketFrame" style="z-index:2; left:0; width:100%; height:100%; border:0px;" src=\"'+zimletInstance._zimletContext.getConfig("rocketurl")+'\"></div>');   
    } catch (err) { console.log (err)} 
 };
 
@@ -53,7 +88,7 @@ function(appName, active) {
       try {
          var cal = document.getElementsByClassName("DwtCalendar");
          cal[0].style.display = "none";
-      } catch (err) { setTimeout(function(){var cal = document.getElementsByClassName("DwtCalendar"); cal[0].style.display = "none"; }, 10000); }
+      } catch (err) { setTimeout(function(){try{var cal = document.getElementsByClassName("DwtCalendar"); cal[0].style.display = "none";}catch(err){} }, 10000); }
       
       var app = appCtxt.getApp(zimletInstance.ZimbraRocketTab);
       var overview = app.getOverview(); // returns ZmOverview
@@ -76,3 +111,69 @@ function(appName, active) {
    }
 };
 
+ZimbraRocketZimlet.prototype.createAccount = function()
+{
+   var zimletInstance = appCtxt._zimletMgr.getZimletByName('com_zimbra_rocket').handlerObject;	
+   try{
+      var xhr = new XMLHttpRequest();  
+      xhr.open('GET', '/service/extension/rocket?action=createUser');
+   
+      xhr.onerror = function (err) {
+         console.log(err);
+       };
+         
+      xhr.send();
+      xhr.onreadystatechange = function (oEvent) 
+      {
+         if (xhr.readyState === 4)
+         { 
+            if (xhr.status === 200) 
+            {
+               if(xhr.response)
+               {
+                  var zimletInstance = appCtxt._zimletMgr.getZimletByName('com_zimbra_rocket').handlerObject;	
+                  zimletInstance._dialog = new ZmDialog( { title:'Your Rocket Chat Account is created', parent:zimletInstance.getShell(), standardButtons:[DwtDialog.OK_BUTTON], disposeOnPopDown:true } );   
+                  zimletInstance._dialog.setContent(
+                  '<div style="width:450px; height:160px;">'+
+                  'Your Rocket Chat account has been created!<br><br>'+
+                  'Here are your credentials for the Rocket.Chat App on Android and iPhone:<br>'+
+                  '<textarea style="width:100%" rows=2>Username: '+appCtxt.getActiveAccount().name.replace('@','.')+'\r\nPassword: '+xhr.response+'</textarea><br><br>'+
+                  'Please store these credentials.<br>'+   
+                  '</div>'
+                  );
+                  
+                  zimletInstance._dialog.setButtonListener(DwtDialog.OK_BUTTON, new AjxListener(zimletInstance, zimletInstance._cancelBtn));
+                  zimletInstance._dialog.setEnterListener(new AjxListener(zimletInstance, zimletInstance._cancelBtn));   
+                                
+                  document.getElementById(zimletInstance._dialog.__internalId+'_handle').style.backgroundColor = '#eeeeee';
+                  document.getElementById(zimletInstance._dialog.__internalId+'_title').style.textAlign = 'center';
+                  zimletInstance._dialog.popup(); 
+                  ZimbraRocketZimlet.prototype.setIframe(); 
+               }   
+            }
+            if (xhr.status === 500) 
+            {
+               if(xhr.response)
+               {
+                  ZimbraRocketZimlet.prototype.status("Could not create your Rocket Chat Account", ZmStatusView.LEVEL_CRITICAL);
+                  ZimbraRocketZimlet.prototype.setIframe(); 
+               }   
+            }
+
+         }
+      }
+   } catch (err) {     
+      console.log(err);
+   }
+};
+
+ZimbraRocketZimlet.prototype._cancelBtn =
+function() {
+   var zimletInstance = appCtxt._zimletMgr.getZimletByName('com_zimbra_rocket').handlerObject;
+   
+   try{
+      zimletInstance._dialog.setContent('');
+      zimletInstance._dialog.popdown();
+   }
+   catch (err) {}
+};

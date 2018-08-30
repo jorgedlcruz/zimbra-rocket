@@ -1,5 +1,5 @@
 <zimlet name="com_zimbra_rocket"
-        version="0.0.1"
+        version="0.0.2"
         target="main compose-window view-window"
         label="Zimbra Rocket"
         description="Zimbra Rocket">
@@ -8,4 +8,7 @@
     <zimletPanelItem label="Zimbra Rocket" icon="ZimbraRocket-panelIcon">
    </zimletPanelItem>
    <handlerObject>com_zimbra_rocket_HandlerObject</handlerObject>
+   <userProperties>
+      <property type="string" label="" name="accountCreateInteger" rows="1"/>
+   </userProperties>   
 </zimlet>

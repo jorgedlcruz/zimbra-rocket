@@ -22,18 +22,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-API implementation for Zimbra -> Rocket Chat, supported actions:
-
-createUser
-https://zimbradev/service/extension/rocket?action=createUser
-Creates users in Rocket chat based on their Zimbra account name.
-The Zimbra Account name is mapped to the username in Rocket Chat.
-(replacing @ with . so admin@example.com in Zimbra becomes
-admin.example.com in Rocket)
-
-Furthermore the users Zimbra givenName and sn (surname) are
-concatenated to the Name in Rocket. Email is email in both
-systems.
+API implementation for Zimbra -> Rocket Chat..
 
 signOn
 https://zimbradev/service/extension/rocket?action=signOn
@@ -64,8 +53,29 @@ You can create your own account first in Rocket before enabling
 the integration and promote that to admin. Aka user.example.com.
 
 Otherwise you may lock yourself out.
- 
+
+
 You can debug using the following commands:
+
+createUser
+Create a new user in Zimbra, make sure to set givenName and sn,
+log in as that user in Zimbra, open a tab and point it to:
+https://yourzimbra/service/extension/rocket?action=createUser
+Creates users in Rocket chat based on their Zimbra account name.
+The Zimbra Account name is mapped to the username in Rocket Chat.
+(replacing @ with . so admin@example.com in Zimbra becomes
+admin.example.com in Rocket)
+
+Furthermore the users Zimbra givenName and sn (surname) are
+concatenated to the Name in Rocket. Email is email in both
+systems
+
+If it returns 500, perhaps the account already exists or your admin
+credentials configured in config.properties are wrong. Or the email
+address is already configured on Rocket.
+
+Try debug further with curl:
+
 #Get admin auth token
 curl https://beta.rocket.org:443/api/v1/login -d "username=adminUsername&password=adminPassword"
 #Copy paste from the output
@@ -212,8 +222,6 @@ public class Rocket extends ExtensionHttpHandler {
                     String token;
                     token = this.setUserAuthToken(zimbraAccount.getName().replace("@", "."));
                     if (!"".equals(token)) {
-                        resp.setHeader("Access-Control-Allow-Origin", this.rocketURL);
-                        resp.setHeader("Access-Control-Allow-Credentials", "true");
                         resp.setHeader("Content-Type", "application/json");
                         responseWriter("ok", resp, "{\"loginToken\":\""+token+"\"}");
                     } else {
@@ -221,10 +229,8 @@ public class Rocket extends ExtensionHttpHandler {
                     }
                     break;
                 case "redirect":
-                    resp.setHeader("Access-Control-Allow-Origin", this.rocketURL);
-                    resp.setHeader("Access-Control-Allow-Credentials", "true");
                     resp.setHeader("Content-Type", "text/html");
-                    responseWriter("ok", resp, "<html><head></head><body>Please <a target=\"_blank\" href=\"" + this.loginurl + "\">Log in</a>.</body>");
+                    responseWriter("ok", resp, "<html><head></head><body><div style=\"background-color:white;color:black;padding:10px\">Please <a target=\"_blank\" href=\"" + this.loginurl + "\">Log in</a>.</div></body>");
                     break;
 
             }
@@ -235,6 +241,8 @@ public class Rocket extends ExtensionHttpHandler {
 
     private void responseWriter(String action, HttpServletResponse resp, String message) {
         try {
+            resp.setHeader("Access-Control-Allow-Origin", this.rocketURL);
+            resp.setHeader("Access-Control-Allow-Credentials", "true");
             switch (action) {
                 case "ok":
                     resp.setStatus(HttpServletResponse.SC_OK);
@@ -250,7 +258,7 @@ public class Rocket extends ExtensionHttpHandler {
                     break;
                 case "error":
                     resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    resp.getWriter().write("An internal server error occurred.");
+                    resp.getWriter().write("The request did not succeed successfully.");
                     break;
             }
             resp.getWriter().flush();
