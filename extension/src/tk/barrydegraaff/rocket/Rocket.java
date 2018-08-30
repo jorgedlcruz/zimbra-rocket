@@ -43,13 +43,49 @@ If the user is logged into Zimbra this
 url will return an auth token to Rocket to let the user login.
 
 redirect
-https://zimbradev/service/extension/rocket?action=signOn
+https://zimbradev/service/extension/rocket?action=redirect
 This URL needs to be configured in Rocket Chat under
 Administration->Accounts->Iframe->Iframe URL
 
 This implementation uses HTTP GET
 Administration->Accounts->Iframe->Api Method = GET
 
+Before enabling the IFrame auth on Rocket, make sure to
+create an Admin account first (usually this is done at initial
+setup). You can use these credentials to debug if needed,
+but they are also needed for Zimbra to perform its actions.
+
+After enabling IFrame auth, you can no longer log-in via
+the Rocket login page. You can either follow the steps here
+to promote an account created by Zimbra to have an admin role.
+https://rocket.chat/docs/administrator-guides/restoring-an-admin/
+OR
+You can create your own account first in Rocket before enabling
+the integration and promote that to admin. Aka user.example.com.
+
+Otherwise you may lock yourself out.
+ 
+You can debug using the following commands:
+#Get admin auth token
+curl https://beta.rocket.org:443/api/v1/login -d "username=adminUsername&password=adminPassword"
+#Copy paste from the output
+
+#create a user
+curl -H "X-Auth-Token: from above command" \
+     -H "X-User-Id: from above command" \
+     -H "Content-type:application/json" \
+     https://beta.rocket.org/api/v1/users.create \
+     -d '{"name": "My User Name", "email": "exampleuser@zimbra.com", "password": "dfbgdyE%^&456645", "username": "exampleuser.zimbra.com"}'
+
+
+Create a user token (used for login)
+curl -H "X-Auth-Token: from above command" \
+     -H "X-User-Id: from above command" \
+     -H "Content-type:application/json" \
+     https://beta.rocket.org:443/api/v1/users.createToken \
+     -d '{ "username": "exampleuser.zimbra.com" }'
+
+This command will tell you why the creation of a user failed.
 */
 
 package tk.barrydegraaff.rocket;
