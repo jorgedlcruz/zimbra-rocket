@@ -17,7 +17,7 @@ Rocket Chat it's also designed to be deployed on Docker or Ubuntu Snap, which is
 ## This Zimlet supports optional auto-login to Rocket using the Rocket API
 This Zimlet can automatically log your users on to Rocket chat and even automatically create new users on Rocket chat. That way you only need to maintain the user accounts on Zimbra (full integration). Or you can maintain your Rocket accounts via LDAP or manually, but still log them on automatically (logon-only integration). Or you can just deploy only the Zimlet and let the user decide on the authentication (basic integration).
 1. **Full integration**
-For this you need to set-up the Java server extension copy it from https://github.com/Zimbra-Community/zimbra-rocket/raw/master/extension/out/artifacts/extension_jar/extension.jar to /opt/zimbra/lib/ext/rocket/extension.jar then create a text file /opt/zimbra/lib/ext/rocket/config.properties with the contents:
+For this you need to set-up the Java server extension copy it from https://github.com/Zimbra-Community/zimbra-rocket/releases to /opt/zimbra/lib/ext/rocket/extension.jar then create a text file /opt/zimbra/lib/ext/rocket/config.properties with the contents:
 
         adminuser=adminUsername
         adminpassword=adminPassword
