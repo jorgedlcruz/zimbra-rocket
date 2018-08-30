@@ -5,8 +5,6 @@
         description="Zimbra Rocket">
     <include>com_zimbra_rocket.js</include>
     <includeCSS>com_zimbra_rocket.css</includeCSS>
-    <zimletPanelItem label="Zimbra Rocket" icon="ZimbraRocket-panelIcon">
-   </zimletPanelItem>
    <handlerObject>com_zimbra_rocket_HandlerObject</handlerObject>
    <userProperties>
       <property type="string" label="" name="accountCreateInteger" rows="1"/>
