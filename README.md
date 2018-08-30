@@ -28,7 +28,7 @@ This adminuser and password you should have created when you first installed Roc
 
 You must also configure Rocket chat like so:
 ![Zimbra Rocket](https://raw.githubusercontent.com/Zimbra-Community/zimbra-rocket/master/img/zimbra-rocket-iframe.png)
-Be careful, as you can easily lock yourself out if something does not work.
+Be careful, as you can easily lock yourself out if something does not work. If you want more details check: https://github.com/Zimbra-Community/zimbra-rocket/wiki/Debugging
 
 Also enable the full iframe integration like so:
 ![Zimbra Rocket](https://raw.githubusercontent.com/Zimbra-Community/zimbra-rocket/master/img/zimbra-rocket-iframe2.png?1)
@@ -90,6 +90,8 @@ Go to Administration > Videoconference and add your Zimbra Talk FQDN, and the Zi
 Then the users will be able to call each other, or to groups by using the camera icon:
 ![Zimbra Rocket](https://raw.githubusercontent.com/Zimbra-Community/zimbra-rocket/master/img/rocket-010.png)
 
+# Troubleshooting
+https://github.com/Zimbra-Community/zimbra-rocket/wiki/Debugging
 
 ========================================================================
 ### License
