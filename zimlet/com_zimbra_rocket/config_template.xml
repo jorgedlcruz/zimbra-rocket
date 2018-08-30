@@ -26,7 +26,7 @@ created.
 -->
 <zimletConfig name="com_zimbra_rocket" version="1.0">
     <global>
-        <property name="rocketurl">https://beta.zetalliance.org/</property>
+        <property name="rocketurl">https://rocketserverhere.org/</property>
         <property name="createRocketAccount">true</property>
         <property name="accountCreateInteger">1</property>
     </global>
