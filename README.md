@@ -76,6 +76,8 @@ Create a file /usr/local/sbin/rocket-token-purge with contents:
 run `chmod +rx /usr/local/sbin/rocket-token-purge` and put it in cron `crontab -e` like so:
 
       2 3 1 * * /usr/local/sbin/rocket-token-purge
+      
+This will log people out of the Rocket.Chat app on their phone, so they need to re-enter their credentials.
 
 See also: https://github.com/RocketChat/Rocket.Chat/issues/6738
 
