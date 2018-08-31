@@ -150,7 +150,7 @@ public class Rocket extends ExtensionHttpHandler {
      */
     @Override
     public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
-        resp.getOutputStream().print("tk.barrydegraaff.docconvert is installed. HTTP POST method is not supported");
+        resp.getOutputStream().print("tk.barrydegraaff.rocket is installed. HTTP POST method is not supported");
     }
 
     /**
