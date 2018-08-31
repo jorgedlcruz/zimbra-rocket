@@ -75,7 +75,7 @@ Create a file /usr/local/sbin/rocket-token-purge with contents:
       
 run `chmod +rx /usr/local/sbin/rocket-token-purge` and put it in cron `crontab -e` like so:
 
-      2 3 * * * /usr/local/sbin/rocket-token-purge
+      2 3 1 * * /usr/local/sbin/rocket-token-purge
 
 See also: https://github.com/RocketChat/Rocket.Chat/issues/6738
 
