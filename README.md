@@ -64,6 +64,21 @@ Edit the /tmp/config_template.xml.tmp file according to your needs. Import the n
 
       zmzimletctl configure /tmp/config_template.xml.tmp
 
+## Clean up authentication tokens
+Their appears to be an issue in meteor (the platform on which Rocket is build) that results in authentication tokens not being purged. This is a performance and security issue, as one user record can have thousands of valid tokens slowing down the db. To fix this configure a clean-up cron.
+
+Create a file /usr/local/sbin/rocket-token-purge with contents:
+
+      #!/bin/bash
+      cd /snap/rocketchat-server/*/
+      ./bin/mongo parties --eval 'db.users.update({}, { $set: { "services.resume.loginTokens": []}},{multi: true})'
+      
+run `chmod +rx /usr/local/sbin/rocket-token-purge` and put it in cron `crontab -e` like so:
+
+      2 3 * * * /usr/local/sbin/rocket-token-purge
+
+See also: https://github.com/RocketChat/Rocket.Chat/issues/6738
+
 ## How to Configure Rocket Chat with Zimbra LDAP (optional)
 Configure Rocket Chat with the Zimbra LDAP is really easy, and you must follow the next steps:
 
