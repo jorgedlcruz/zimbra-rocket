@@ -47,7 +47,8 @@ ZimbraRocketZimlet.prototype.setIframe = function()
    var zimletInstance = appCtxt._zimletMgr.getZimletByName('com_zimbra_rocket').handlerObject;	   
    zimletInstance.ZimbraRocketTab = zimletInstance.createApp("Rocket", "", "Rocket");
    var app = appCtxt.getApp(zimletInstance.ZimbraRocketTab);
-   app.setContent('<div style="position: fixed; margin-top:-36px; left:0; width:100%; height:92%; border:0px;"><iframe id="ZimbraRocketFrame" style="z-index:2; left:0; width:100%; height:100%; border:0px;" src=\"'+zimletInstance._zimletContext.getConfig("rocketurl")+'\"></div>');   
+   var appPosition = document.getElementById('skin_container_app_new_button').getBoundingClientRect();
+   app.setContent('<div style="position: fixed; top:'+appPosition.y+'px; left:0; width:100%; height:92%; border:0px;"><iframe id="ZimbraRocketFrame" style="z-index:2; left:0; width:100%; height:100%; border:0px;" src=\"'+zimletInstance._zimletContext.getConfig("rocketurl")+'\"></div>');   
    } catch (err) { console.log (err)} 
 };
 
